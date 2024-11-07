@@ -6,6 +6,8 @@ export const routersPaths = {
     comments: '/comments',
     testing: '/testing',
     inTesting:'/all-data',
+    security:'/security',
+    inSecurity:'/devices',
     auth:'/auth',
     inAuth: {
         login: '/login',

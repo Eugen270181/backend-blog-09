@@ -1,6 +1,6 @@
 import {BlogDbModel} from '../types/blogDb.model'
 import {ObjectId, WithId} from "mongodb"
-import {BlogOutputModel} from "../types/output/blogOutput.type";
+import {BlogOutputModel} from "../types/output/blogOutput.model";
 import {db} from "../../../common/module/db/db";
 import {Pagination} from "../../../common/types/pagination.type";
 import {BlogsQueryFilterType} from "../types/blogsQueryFilter.type";

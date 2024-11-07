@@ -4,7 +4,6 @@ import {usersRepository} from '../../users/repositories/usersRepository';
 import {ResultClass} from '../../../common/classes/result.class';
 import {ResultStatus} from '../../../common/types/enum/resultStatus';
 import {jwtServices} from "../../../common/adapters/jwtServices";
-import {IdType} from "../../../common/types/id.type";
 import {nodemailerServices} from "../../../common/adapters/nodemailerServices";
 import {User} from "../../users/classes/user.class";
 import {CreateUserInputModel} from "../../users/types/input/createUserInput.type";
@@ -14,34 +13,40 @@ import {LoginSuccessOutputModel} from "../types/output/loginSuccessOutput.model"
 import { randomUUID } from 'crypto';
 import { add } from 'date-fns/add';
 import {appConfig} from "../../../common/settings/config";
+import {UserIdType} from "../../../common/types/userId.type";
+import {securityRepository} from "../../security/repository/securityRepository";
+import {SecurityDbModel} from "../../security/types/securityDb.model";
 
-type extLoginSuccessOutputModel = LoginSuccessOutputModel & {refreshToken:string}
+type extLoginSuccessOutputModel = LoginSuccessOutputModel & {refreshToken:string, lastActiveDate:number}
 export const authServices = {
-    async generateTokens(userId:ObjectId){
+    //Рефрештокен кодировать с учетом userId и deviceId, а вернуть помимо токенов еще и дату их создания
+    async generateTokens(userId:string, deviceId:string){
         const result = new ResultClass<extLoginSuccessOutputModel>()
-        //если данные для входа валидны, то генеирруем токены для пользователя по его id
-        const accessToken = await jwtServices.createToken(userId.toString(),appConfig.AT_SECRET,appConfig.AT_TIME)
-        const refreshToken = await jwtServices.createToken(userId.toString(),appConfig.RT_SECRET,appConfig.RT_TIME)
+        //генеирруем токены для пользователя и его deviceid
+        const accessToken = await jwtServices.createToken(userId, appConfig.AT_SECRET, appConfig.AT_TIME)
+        const refreshToken = await jwtServices.createToken(userId, appConfig.RT_SECRET, appConfig.RT_TIME, deviceId)
         //записываем дату создания RT по user в соответ объект соотв коллекции бд
-        const iatRT = (await jwtServices.decodeToken(refreshToken) as {iat?:number}).iat
-        if (!iatRT) {
+        const jwtPayload = await jwtServices.decodeToken(refreshToken)
+        if (!jwtPayload) {
             result.status = ResultStatus.CancelledAction;
             result.addError('Sorry, something wrong with creation|decode refreshToken, try login later','refreshToken')
             return result
         }
-        const isUpdateIatRTSec = await usersRepository.updateIatRTSec(userId,iatRT)
-        if (!isUpdateIatRTSec) {
+        if ( !(jwtPayload as object).hasOwnProperty("userId") || !(jwtPayload as object).hasOwnProperty("deviceId")
+            || !(jwtPayload as object).hasOwnProperty("iat") ) {
             result.status = ResultStatus.CancelledAction;
-            result.addError('Sorry, something wrong with update iat refreshToken, try login later','refreshToken')
+            result.addError('Sorry, something wrong with creation|decode refreshToken, try login later','refreshToken')
             return result
         }
+        const lastActiveDate = jwtPayload.iat??0
+
         result.status = ResultStatus.Success
-        result.data = {accessToken,refreshToken}
+        result.data = {accessToken, refreshToken, lastActiveDate}
 
         return result
     },
-    async loginUser(login:LoginInputModel) {
-        const result = new ResultClass<extLoginSuccessOutputModel>()
+    async loginUser(login:LoginInputModel,ip:string,title:string) {
+        let result = new ResultClass<extLoginSuccessOutputModel>()
         const {loginOrEmail, password} = login
         const user= await this.checkUserCredentials(loginOrEmail, password)
         //если логин или пароль не верны или не существуют
@@ -50,13 +55,25 @@ export const authServices = {
             result.addError('Wrong credentials','loginOrEmail|password')
             return result
         }
-        //если данные для входа валидны, то генеирруем токены для пользователя по его id
-        return this.generateTokens(user.data!._id)
+        //если данные для входа валидны, то генеирруем deviceId и токены RT и AT, кодируя в RT payload {userId,deviceId}
+        const deviceId = randomUUID()
+        const userId = user.data!._id.toString()
+        //если данные для входа валидны, то генеирруем токены для пользователя и его deviceId
+        result = await this.generateTokens(userId,deviceId)
+        //создать новую сессию если генерация токенов прошла успешно
+        if (result.data) {
+            const lastActiveDate = result.data.lastActiveDate;
+            const expDate = lastActiveDate+Number((appConfig.RT_TIME).slice(0,-1))*1000;
+            const newSession = {ip,title,deviceId,userId,lastActiveDate,expDate}
+            const sid = await securityRepository.createSession(newSession)
+        }
+
+        return result
     },
     async logoutUser(refreshToken: string) {
-        const isRTValid= await this.checkRefreshToken(refreshToken)
-        if (!isRTValid.data) return false
-        return usersRepository.updateIatRTSec(new ObjectId(isRTValid.data.id),0)
+        const currentSession= await this.checkRefreshToken(refreshToken)
+        if (!currentSession.data) return false
+        return securityRepository.deleteSession(currentSession.data._id)
     },
     async registerUser(user:CreateUserInputModel) {
         const {login, password, email} = user
@@ -85,39 +102,58 @@ export const authServices = {
     },
     async checkAccessToken(authHeader: string) {
         const [type, token] = authHeader.split(" ")
-        const result = new ResultClass<IdType>()
-        const userId = await jwtServices.verifyToken(token, appConfig.AT_SECRET)
+        const result = new ResultClass<UserIdType>()
+        const jwtPayload = await jwtServices.verifyToken(token, appConfig.AT_SECRET)
 
-        if (userId) {
-            const user = await usersRepository.getUserById(userId.id)
-            if (user) { result.data = userId; result.status = ResultStatus.Success }
+        if (jwtPayload) {
+            if (!(jwtPayload as object).hasOwnProperty("userId")) throw new Error(`incorrect jwt! ${JSON.stringify(jwtPayload)}`)
+            const userId = jwtPayload.userId;
+            const user = await usersRepository.getUserById(userId)
+            if (user) { result.data = {userId}; result.status = ResultStatus.Success }
         }
 
         return result
     },
     async checkRefreshToken(refreshToken: string) {
-        const result = new ResultClass<IdType>()
-        const userId = await jwtServices.verifyToken(refreshToken, appConfig.RT_SECRET)
+        const result = new ResultClass<WithId<SecurityDbModel>>()
+        const jwtPayload = await jwtServices.verifyToken(refreshToken, appConfig.RT_SECRET)
 
-        if (userId) {
-            const user = await usersRepository.getUserById(userId.id)
-            if (user) {
-                const reqIatRTSec = (await jwtServices.decodeToken(refreshToken) as {iat?:number}).iat
-                if (reqIatRTSec && reqIatRTSec===user.iatRTSec) {
-                    result.data = userId;
-                    result.status = ResultStatus.Success
-                }
+        if (jwtPayload) {
+            if ( !(jwtPayload as object).hasOwnProperty("userId") || !(jwtPayload as object).hasOwnProperty("deviceId") )
+                throw new Error( `incorrect jwt! ${JSON.stringify(jwtPayload)}` )
+            const userId = jwtPayload.userId;
+            const deviceId = jwtPayload.deviceId;
+            const lastActiveDate = jwtPayload.iat??0
+            const activeSession = await securityRepository.findActiveSession({userId, deviceId, lastActiveDate})
+            if (activeSession) {
+                result.data = activeSession
+                result.status = ResultStatus.Success
             }
         }
+
         return result
     },
     async refreshTokens(refreshToken: string){
         const result = new ResultClass<extLoginSuccessOutputModel>()
-        const userId = (await this.checkRefreshToken(refreshToken)).data
+        const foundSession = (await this.checkRefreshToken(refreshToken)).data
 
-        if(!userId) return result
-
-        return this.generateTokens(new ObjectId(userId.id))
+        if(!foundSession) return result
+        //генерируем новую пару токенов обновляем запись сессии по полю lastActiveDate и expDate
+        const newTokens = await this.generateTokens(foundSession.userId,foundSession.deviceId);
+        //создать новую сессию если генерация токенов прошла успешно
+        if (newTokens.data) {
+            const newLastActiveDate = newTokens.data.lastActiveDate;
+            const newExpDate = newLastActiveDate + Number((appConfig.RT_TIME).slice(0, -1)) * 1000;
+            const isSessionUpdated = await securityRepository.updateSession(newLastActiveDate,newExpDate,foundSession._id.toString())
+            if (isSessionUpdated) {
+                result.data = newTokens.data
+                result.status = ResultStatus.Success
+            } else {
+                result.status = ResultStatus.CancelledAction
+                result.addError('Sorry, something wrong with update date of new session, try again','refreshToken')
+            }
+        }
+        return result
     },
     async checkUserCredentials(loginOrEmail: string, password: string){
         const result = new ResultClass<WithId<UserDbModel>>()

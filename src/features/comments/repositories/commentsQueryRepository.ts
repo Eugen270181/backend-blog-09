@@ -1,9 +1,9 @@
 import {db} from "../../../common/module/db/db"
 import {ObjectId, WithId} from "mongodb"
 import {SortQueryFilterType} from "../../../common/types/sortQueryFilter.type";
-import {CommentOutputModel} from "../types/output/commentOutput.type";
+import {CommentOutputModel} from "../types/output/commentOutput.model";
 import {CommentDbModel} from "../types/commentDb.model";
-import {pagCommentOutputModel} from "../types/output/pagCommentOutput.type";
+import {pagCommentOutputModel} from "../types/output/pagCommentOutput.model";
 
 export const commentsQueryRepository = {
     async findCommentById(id: string) {

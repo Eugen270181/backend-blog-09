@@ -11,7 +11,7 @@ export const accessTokenMiddleware = async (req: Request, res: Response, next: N
     const result = await authServices.checkAccessToken(authHeader);
 
     if (result.status === ResultStatus.Success) {
-        req.user = result.data as IdType;
+        req.user = {userId:result.data!.userId};
         return next();
     }
 

@@ -1,5 +1,5 @@
 import {Response} from 'express'
-import {UpdatePostInputModel} from "../types/input/updatePostInput.type";
+import {UpdatePostInputModel} from "../types/input/updatePostInput.model";
 import {postsServices} from "../services/postsServices";
 import {HttpStatus} from "../../../common/types/enum/httpStatus";
 import {RequestWithParamsAndBody} from "../../../common/types/requests.type";

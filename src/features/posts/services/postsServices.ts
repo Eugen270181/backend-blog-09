@@ -1,8 +1,8 @@
 import {PostDbModel} from '../types/postDb.model'
 import {ObjectId} from "mongodb"
 import {blogsRepository} from '../../blogs/repositories/blogsRepository'
-import {CreatePostInputModel} from "../types/input/createPostInput.type";
-import {UpdatePostInputModel} from "../types/input/updatePostInput.type";
+import {CreatePostInputModel} from "../types/input/createPostInput.model";
+import {UpdatePostInputModel} from "../types/input/updatePostInput.model";
 import {postsRepository} from "../repository/postsRepository";
 
 

@@ -1,9 +1,9 @@
 import {db} from "../../../common/module/db/db"
 import {ObjectId, WithId} from "mongodb"
-import {PostOutputModel} from "../types/output/postOutput.type";
+import {PostOutputModel} from "../types/output/postOutput.model";
 import {PostDbModel} from "../types/postDb.model";
 import {SortQueryFilterType} from "../../../common/types/sortQueryFilter.type";
-import {pagPostOutputModel} from "../types/output/pagPostOutput.type";
+import {pagPostOutputModel} from "../types/output/pagPostOutput.model";
 
 export const postsQueryRepository = {
     async findPostById(id: string) {

@@ -7,7 +7,7 @@ import {RequestWithUserId} from "../../../common/types/requests.type";
 
 
 export const getMeController = async (req: RequestWithUserId<IdType>, res: Response<MeOutputModel|{}>) => {
-    const userId = req.user?.id as string;
+    const userId = req.user?.userId as string;
     const meViewObject = await usersQueryRepository.getMapMe(userId)
     return res.status(HttpStatus.Success).send(meViewObject)
 }

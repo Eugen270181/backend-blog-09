@@ -7,8 +7,8 @@ export class ResultClass<T=null> {
     public data:T|null; //данные - структура дженерик для передачи в теле ответа
     public errors: OutputErrorsType;         // объект с ключом - Массив ошибок
     constructor(status?:ResultStatus, data?:T) {
-        this.status = status?status:ResultStatus.BadRequest;
-        this.data = data?data:null;
+        this.status = status??ResultStatus.BadRequest;
+        this.data = data??null;
         this.errors = { errorsMessages: [] }; // Инициализируем массив ошибок
     }
 

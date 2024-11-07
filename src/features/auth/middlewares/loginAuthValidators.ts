@@ -4,7 +4,6 @@ import {inputValidationMiddleware} from "../../../common/middleware/inputValidat
 
 export const loginAuthValidators = [
     loginOrEmailValidator,
-    passwordValidator,
 
     inputValidationMiddleware,
 ]

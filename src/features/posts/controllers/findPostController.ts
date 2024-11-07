@@ -1,5 +1,5 @@
 import {Response} from 'express'
-import {PostOutputModel} from "../types/output/postOutput.type";
+import {PostOutputModel} from "../types/output/postOutput.model";
 import {postsQueryRepository} from "../repository/postsQueryRepository";
 import {HttpStatus} from "../../../common/types/enum/httpStatus";
 import {RequestWithParams} from "../../../common/types/requests.type";

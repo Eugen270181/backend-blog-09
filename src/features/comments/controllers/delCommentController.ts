@@ -7,7 +7,7 @@ import {IdType} from "../../../common/types/id.type";
 
 
 export const delCommentController = async (req: RequestWithParamsAndUserId<IdType,IdType>, res: Response) => {
-    const userId = req.user?.id as string
+    const userId = req.user?.userId as string
     const commentId = req.params.id
     const deleteResult = await commentsServices.deleteComment(commentId,userId)
 

@@ -1,6 +1,6 @@
 import {Response} from 'express'
 import {postsQueryRepository} from "../../posts/repository/postsQueryRepository";
-import {pagPostOutputModel} from "../../posts/types/output/pagPostOutput.type";
+import {pagPostOutputModel} from "../../posts/types/output/pagPostOutput.model";
 import {querySortSanitizer} from "../../../common/module/querySortSanitizer";
 import {blogsRepository} from "../repositories/blogsRepository";
 import {HttpStatus} from "../../../common/types/enum/httpStatus";

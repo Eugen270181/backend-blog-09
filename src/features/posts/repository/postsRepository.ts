@@ -1,7 +1,7 @@
 import {PostDbModel} from '../types/postDb.model'
 import {db} from "../../../common/module/db/db"
 import {ObjectId} from "mongodb"
-import {UpdatePostInputModel} from "../types/input/updatePostInput.type";
+import {UpdatePostInputModel} from "../types/input/updatePostInput.model";
 
 export const postsRepository = {
     async createPost(post: PostDbModel) {

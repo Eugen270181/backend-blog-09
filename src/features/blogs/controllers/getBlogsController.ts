@@ -4,7 +4,7 @@ import {querySortSanitizer} from "../../../common/module/querySortSanitizer";
 import {HttpStatus} from "../../../common/types/enum/httpStatus";
 import {RequestWithQuery} from "../../../common/types/requests.type";
 import {Pagination} from "../../../common/types/pagination.type";
-import {BlogOutputModel} from "../types/output/blogOutput.type";
+import {BlogOutputModel} from "../types/output/blogOutput.model";
 import {BlogsQueryFieldsType} from "../types/blogsQueryFields.type";
 import {BlogsQueryFilterType} from "../types/blogsQueryFilter.type";
 

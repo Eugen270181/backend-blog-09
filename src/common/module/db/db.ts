@@ -4,6 +4,8 @@ import {PostDbModel} from '../../../features/posts/types/postDb.model'
 import {appConfig} from "../../settings/config";
 import {UserDbModel} from "../../../features/users/types/userDb.model";
 import {CommentDbModel} from "../../../features/comments/types/commentDb.model";
+import {SecurityDbModel} from "../../../features/security/types/securityDb.model";
+import {RequestsLogDbModel} from "../../middleware/rateLimitLogger/requestsLogDb.model";
 
 export const db = {
     client: {} as MongoClient,
@@ -43,10 +45,12 @@ export const db = {
     },
     getCollections() {
         return {
-            usersCollection: this.getDbName().collection<UserDbModel>(appConfig.USER_COLLECTION_NAME),
-            blogsCollection: this.getDbName().collection<BlogDbModel>(appConfig.BLOG_COLLECTION_NAME),
-            postsCollection: this.getDbName().collection<PostDbModel>(appConfig.POST_COLLECTION_NAME),
-            commentsCollection: this.getDbName().collection<CommentDbModel>(appConfig.COMMENT_COLLECTION_NAME),
+            usersCollection: this.getDbName().collection<UserDbModel>(appConfig.USERS_COLLECTION_NAME),
+            blogsCollection: this.getDbName().collection<BlogDbModel>(appConfig.BLOGS_COLLECTION_NAME),
+            postsCollection: this.getDbName().collection<PostDbModel>(appConfig.POSTS_COLLECTION_NAME),
+            commentsCollection: this.getDbName().collection<CommentDbModel>(appConfig.COMMENTS_COLLECTION_NAME),
+            requestsLogCollection: this.getDbName().collection<RequestsLogDbModel>(appConfig.REQUESTS_COLLECTION_NAME),
+            sessionsCollection: this.getDbName().collection<SecurityDbModel>(appConfig.SESSIONS_COLLECTION_NAME),
             //...all collections
         }
     },

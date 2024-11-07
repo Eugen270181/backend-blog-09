@@ -1,4 +1,4 @@
-import { BlogOutputModel } from './blogOutput.type';
+import { BlogOutputModel } from './blogOutput.model';
 
 export type pagBlogOutputModel = {
   pagesCount: number

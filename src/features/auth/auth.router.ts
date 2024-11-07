@@ -12,15 +12,16 @@ import {emailResendingAuthValidators} from "./middlewares/regEmailResendingValid
 import {emailResendingAuthController} from "./controllers/emailResendingAuthController";
 import {refreshTokenAuthController} from "./controllers/refreshTokenAuthController";
 import {logoutAuthController} from "./controllers/logoutAuthController";
+import {rateLimitLoggerMiddleware} from "../../common/middleware/rateLimitLogger/rateLimitLoggerMiddleware";
 export const authRouter = Router()
 
 //testingRouter.use(adminMiddleware)
 //login(reqirements - Returns JWT accessToken (expired after 10 seconds) in body and JWT refreshToken in cookie (http-only, secure) (expired after 20 seconds)
-authRouter.post(routersPaths.inAuth.login, loginAuthValidators, loginAuthController)
+authRouter.post(routersPaths.inAuth.login, rateLimitLoggerMiddleware, loginAuthValidators, loginAuthController)
 authRouter.get(routersPaths.inAuth.me, accessTokenMiddleware, getMeController)
 authRouter.post(routersPaths.inAuth.registration, registrationAuthValidators, registrationAuthController)
-authRouter.post(routersPaths.inAuth.registrationConfirmation, regConfirmAuthValidators, regConfirmAuthController)
-authRouter.post(routersPaths.inAuth.registrationEmailResending, emailResendingAuthValidators, emailResendingAuthController)
+authRouter.post(routersPaths.inAuth.registrationConfirmation, rateLimitLoggerMiddleware, regConfirmAuthValidators, regConfirmAuthController)
+authRouter.post(routersPaths.inAuth.registrationEmailResending, rateLimitLoggerMiddleware, emailResendingAuthValidators, emailResendingAuthController)
 //logout(reqirements - In cookie client must send correct refreshToken that will be revoked.)
 authRouter.post(routersPaths.inAuth.logout, logoutAuthController)
 //refresh-token(reqirements - Generate a new pair of access and refresh tokens (in cookie client must send correct refreshToken that will be revoked after refreshing)

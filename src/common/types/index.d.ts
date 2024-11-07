@@ -1,9 +1,9 @@
-import {IdType} from "./id.type";
+import {UserIdType} from "./userId.type";
 
 declare global {
     declare namespace Express {
         export interface Request {
-            user: IdType | undefined;
+            user: UserIdType | undefined;
         }
     }
 }

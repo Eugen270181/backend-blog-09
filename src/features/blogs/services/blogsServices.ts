@@ -1,6 +1,6 @@
 import {blogsRepository} from "../repositories/blogsRepository";
-import {CreateBlogInputModel} from "../types/input/createBlogInput.type";
-import {UpdateBlogInputModel} from "../types/input/updateblogInput.type";
+import {CreateBlogInputModel} from "../types/input/createBlogInput.model";
+import {UpdateBlogInputModel} from "../types/input/updateblogInput.model";
 import {BlogDbModel} from "../types/blogDb.model";
 import {ObjectId} from "bson";
 

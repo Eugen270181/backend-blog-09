@@ -1,5 +1,5 @@
 import {Response} from 'express'
-import {UpdateBlogInputModel} from "../types/input/updateblogInput.type";
+import {UpdateBlogInputModel} from "../types/input/updateblogInput.model";
 import {blogsServices} from "../services/blogsServices";
 import {HttpStatus} from "../../../common/types/enum/httpStatus";
 import {RequestWithParamsAndBody} from "../../../common/types/requests.type";

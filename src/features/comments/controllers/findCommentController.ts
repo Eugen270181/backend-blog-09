@@ -1,5 +1,5 @@
 import {Response} from 'express'
-import {CommentOutputModel} from "../types/output/commentOutput.type";
+import {CommentOutputModel} from "../types/output/commentOutput.model";
 import {commentsQueryRepository} from "../repositories/commentsQueryRepository";
 import {HttpStatus} from "../../../common/types/enum/httpStatus";
 import {RequestWithParams} from "../../../common/types/requests.type";

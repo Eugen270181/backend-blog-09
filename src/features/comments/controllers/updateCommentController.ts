@@ -9,7 +9,7 @@ import {IdType} from "../../../common/types/id.type";
 
 export const updateCommentController = async (req: RequestWithParamsAndBodyAndUserId<IdType, CreateCommentInputModel, IdType>, res: Response) => {
 
-    const userId = req.user?.id as string;
+    const userId = req.user?.userId as string;
     const commentId = req.params.id
     const {content} = req.body
     const updateResult = await commentsServices.updateComment({content}, commentId, userId)

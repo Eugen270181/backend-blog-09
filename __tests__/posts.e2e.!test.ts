@@ -3,7 +3,7 @@ import {dbMongo, setDB} from '../src/db/dbMemory'
 import {appConfig} from '../src/common/settings/config'
 import {codedAuth, createString, dataset1, dataset2} from './helpers/datasets'
 
-import {CreatePostInputModel} from "../src/features/posts/types/input/createPostInput.type";
+import {CreatePostInputModel} from "../src/features/posts/types/input/createPostInput.model";
 
 describe('/posts', () => {
     // beforeAll(async () => { // очистка базы данных перед началом тестирования

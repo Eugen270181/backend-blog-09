@@ -9,9 +9,11 @@ import {ResultStatus} from "../../../common/types/enum/resultStatus";
 
 
 export const loginAuthController = async (req: RequestWithBody<LoginInputModel>, res: Response<LoginSuccessOutputModel>) => {
-    const result = await authServices.loginUser(req.body)
+    const result = await authServices.loginUser(req.body,req.ip??'unknown',req.headers["user-agent"]??'unknown')
 
     if (result.status === ResultStatus.Unauthorized) return res.sendStatus(HttpStatus.Unauthorized)
+
+    if (result.status === ResultStatus.CancelledAction) return res.sendStatus(HttpStatus.InternalServerError)
 
     res.cookie("refreshToken",result.data!.refreshToken,{
         httpOnly: true,
