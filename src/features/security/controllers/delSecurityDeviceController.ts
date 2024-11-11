@@ -8,6 +8,7 @@ import {authServices} from "../../auth/services/authServices";
 import {securityServices} from "../services/securityServices";
 //TODO
 export const delSecurityDeviceController = async (req: RequestWithParams<IdType>, res: Response) => {
+    const sid = req.params.id;
     const refreshToken = req.cookies.refreshToken
     if (!refreshToken) return res.sendStatus(HttpStatus.Unauthorized)
     const checkRT = await authServices.checkRefreshToken(refreshToken)
