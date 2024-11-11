@@ -5,6 +5,12 @@ import {SecurityDbModel} from "../types/securityDb.model";
 
 
 export const securityRepository = {
+    async findSessionById(deviceId:string) {
+        const isIdValid = ObjectId.isValid(deviceId);
+        if (!isIdValid) return null
+        const _id=new ObjectId(deviceId)
+        return db.getCollections().sessionsCollection.findOne({ _id });
+    },
     async findActiveSession(sessionFilter:SessionFindType) {
         const { userId, deviceId, lastActiveDate } = sessionFilter
         const isIdValid = ObjectId.isValid(deviceId);
