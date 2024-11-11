@@ -5,20 +5,19 @@ import {SecurityDbModel} from "../types/securityDb.model";
 
 
 export const securityRepository = {
-    async findSessionById(id: string) {
-        const isIdValid = ObjectId.isValid(id)
-        if (!isIdValid) return null
-        return db.getCollections().sessionsCollection.findOne({ _id: new ObjectId(id) })
-    },
     async findActiveSession(sessionFilter:SessionFindType) {
-        return db.getCollections().sessionsCollection.findOne(sessionFilter);
+        const { userId, deviceId, lastActiveDate } = sessionFilter
+        const isIdValid = ObjectId.isValid(deviceId);
+        if (!isIdValid) return null
+        const _id=new ObjectId(deviceId)
+        return db.getCollections().sessionsCollection.findOne({ userId, _id, lastActiveDate });
     },
-    async createSession(sessionObject:SecurityDbModel) {
+    async createSession(sessionObject:WithId<SecurityDbModel>) {
         const result = await db.getCollections().sessionsCollection.insertOne(sessionObject)
         return result.insertedId.toString()
     },
-    async updateSession(lastActiveDate:number, expDate:number, id: string) {
-        const filter = { _id: new ObjectId(id) }
+    async updateSession(lastActiveDate:number, expDate:number, _id: object) {
+        const filter = { _id }
         const updater = { $set: { lastActiveDate, expDate } }
         const result = await db.getCollections().sessionsCollection.updateOne( filter, updater );
         return result.modifiedCount > 0;
@@ -27,5 +26,11 @@ export const securityRepository = {
         const result = await db.getCollections().sessionsCollection.deleteOne({ _id });
         return result.deletedCount > 0
     },
+    async deleteOtherSessions(userId:string, _id:ObjectId){
+        const filter ={ userId,  _id: { $ne: _id } }
+        const result = await db.getCollections().sessionsCollection.deleteMany(filter);
+        return result.deletedCount > 0
+    },
+
 
 }

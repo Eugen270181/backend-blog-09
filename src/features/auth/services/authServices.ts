@@ -10,12 +10,14 @@ import {CreateUserInputModel} from "../../users/types/input/createUserInput.type
 import {ObjectId, WithId} from "mongodb";
 import {UserDbModel} from "../../users/types/userDb.model";
 import {LoginSuccessOutputModel} from "../types/output/loginSuccessOutput.model";
-import { randomUUID } from 'crypto';
 import { add } from 'date-fns/add';
 import {appConfig} from "../../../common/settings/config";
 import {UserIdType} from "../../../common/types/userId.type";
 import {securityRepository} from "../../security/repository/securityRepository";
 import {SecurityDbModel} from "../../security/types/securityDb.model";
+import { v4 as uuidv4 } from 'uuid'
+import {securityServices} from "../../security/services/securityServices";
+import {randomUUID} from "crypto";
 
 type extLoginSuccessOutputModel = LoginSuccessOutputModel & {refreshToken:string, lastActiveDate:number}
 export const authServices = {
@@ -56,7 +58,8 @@ export const authServices = {
             return result
         }
         //если данные для входа валидны, то генеирруем deviceId и токены RT и AT, кодируя в RT payload {userId,deviceId}
-        const deviceId = randomUUID()
+        const deviceId = uuidv4()
+        const _id = new ObjectId(deviceId)
         const userId = user.data!._id.toString()
         //если данные для входа валидны, то генеирруем токены для пользователя и его deviceId
         result = await this.generateTokens(userId,deviceId)
@@ -64,8 +67,8 @@ export const authServices = {
         if (result.data) {
             const lastActiveDate = result.data.lastActiveDate;
             const expDate = lastActiveDate+Number((appConfig.RT_TIME).slice(0,-1))*1000;
-            const newSession = {ip,title,deviceId,userId,lastActiveDate,expDate}
-            const sid = await securityRepository.createSession(newSession)
+            const newSession = {_id, ip, title, userId, lastActiveDate, expDate}
+            const sid = await securityServices.createSession(newSession)
         }
 
         return result
@@ -73,7 +76,7 @@ export const authServices = {
     async logoutUser(refreshToken: string) {
         const currentSession= await this.checkRefreshToken(refreshToken)
         if (!currentSession.data) return false
-        return securityRepository.deleteSession(currentSession.data._id)
+        return securityServices.deleteSession(currentSession.data._id)
     },
     async registerUser(user:CreateUserInputModel) {
         const {login, password, email} = user
@@ -137,14 +140,14 @@ export const authServices = {
         const result = new ResultClass<extLoginSuccessOutputModel>()
         const foundSession = (await this.checkRefreshToken(refreshToken)).data
 
-        if(!foundSession) return result
+        if (!foundSession) return result
         //генерируем новую пару токенов обновляем запись сессии по полю lastActiveDate и expDate
-        const newTokens = await this.generateTokens(foundSession.userId,foundSession.deviceId);
+        const newTokens = await this.generateTokens(foundSession.userId,foundSession._id.toString());
         //создать новую сессию если генерация токенов прошла успешно
         if (newTokens.data) {
             const newLastActiveDate = newTokens.data.lastActiveDate;
             const newExpDate = newLastActiveDate + Number((appConfig.RT_TIME).slice(0, -1)) * 1000;
-            const isSessionUpdated = await securityRepository.updateSession(newLastActiveDate,newExpDate,foundSession._id.toString())
+            const isSessionUpdated = await securityServices.updateSession(newLastActiveDate,newExpDate,foundSession._id)
             if (isSessionUpdated) {
                 result.data = newTokens.data
                 result.status = ResultStatus.Success
@@ -155,7 +158,7 @@ export const authServices = {
         }
         return result
     },
-    async checkUserCredentials(loginOrEmail: string, password: string){
+    async checkUserCredentials(loginOrEmail: string, password: string) {
         const result = new ResultClass<WithId<UserDbModel>>()
         const user = await usersRepository.findByLoginOrEmail(loginOrEmail);
         // Проверка на наличие пользователя

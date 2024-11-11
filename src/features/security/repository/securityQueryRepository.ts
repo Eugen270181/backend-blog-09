@@ -5,11 +5,6 @@ import {SecurityOutputModel} from "../types/output/securityOutput.model";
 import {SecurityDbModel} from "../types/securityDb.model";
 
 export const securityQueryRepository = {
-    async findSessionById(id: string) {
-        const isIdValid = ObjectId.isValid(id)
-        if (!isIdValid) return null
-        return db.getCollections().sessionsCollection.findOne({ _id: new ObjectId(id) })
-    },
     async getActiveSessionsAndMap(userId?:string):Promise<SecurityOutputModel[]> { // используем этот метод если проверили валидность и существование в бд значения blogid
         const timeNow = Date.now();
         const filter = {expDate:{$gt:timeNow}, ...(userId && { userId })}
@@ -25,7 +20,7 @@ export const securityQueryRepository = {
         }
     },
     map(session:WithId<SecurityDbModel>):SecurityOutputModel {
-        const { ip, title, lastActiveDate, deviceId} = session;//деструктуризация
-        return { ip, title, lastActiveDate:lastActiveDate.toString(), deviceId}
+        const { ip, title, lastActiveDate, _id} = session;//деструктуризация
+        return { ip, title, lastActiveDate:lastActiveDate.toString(), deviceId:_id.toString()}
     }
 }

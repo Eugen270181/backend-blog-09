@@ -3,6 +3,5 @@ export type SecurityDbModel = {
     title: string
     lastActiveDate: number
     userId:string
-    deviceId: string
     expDate: number
 }
