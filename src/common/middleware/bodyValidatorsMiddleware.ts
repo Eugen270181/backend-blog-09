@@ -1,6 +1,11 @@
 import {body} from 'express-validator'
 import {usersRepository} from "../../features/users/repositories/usersRepository";
 
+const uniqueLoginValidator = async (login: string) => {
+    const user = await usersRepository.findUserByLogin(login);
+    if (user) throw new Error("login already exist")
+    return true
+}
 const uniqueEmailValidator = async (email: string) => {
     const user = await usersRepository.findUserByEmail(email);
     if (user) throw new Error("email already exist")
@@ -13,13 +18,6 @@ const EmailValidator = async (email: string) => {
     if (!user) throw new Error("Users account with this Email not found!")
     if (user.emailConfirmation.isConfirmed) throw new Error("Users account with this email already activated!")
 
-    return true
-}
-
-
-const uniqueLoginValidator = async (login: string) => {
-    const user = await usersRepository.findUserByLogin(login);
-    if (user) throw new Error("login already exist")
     return true
 }
 

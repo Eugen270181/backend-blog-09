@@ -36,6 +36,51 @@ function parseDuration(duration) {
     return durationObject;
 }
 exports.authServices = {
+    async loginUser(login, ip, title) {
+        let result = new result_class_1.ResultClass();
+        const { loginOrEmail, password } = login;
+        const user = await this.checkUserCredentials(loginOrEmail, password);
+        //если логин или пароль не верны или не существуют
+        if (user.status !== resultStatus_1.ResultStatus.Success) {
+            result.status = resultStatus_1.ResultStatus.Unauthorized;
+            result.addError('Wrong credentials', 'loginOrEmail|password');
+            return result;
+        }
+        //если данные для входа валидны, то генеирруем deviceId и токены RT и AT, кодируя в RT payload {userId,deviceId}
+        const _id = new mongodb_1.ObjectId();
+        const deviceId = _id.toString();
+        const userId = user.data._id.toString();
+        //если данные для входа валидны, то генеирруем токены для пользователя и его deviceId
+        result = await this.generateTokens(userId, deviceId);
+        //создать новую сессию если генерация токенов прошла успешно
+        if (result.data) {
+            const lastActiveDate = result.data.lastActiveDate;
+            const expDate = (0, add_1.add)(lastActiveDate, parseDuration(config_1.appConfig.RT_TIME));
+            const newSession = { _id, ip, title, userId, lastActiveDate, expDate };
+            const sid = await securityServices_1.securityServices.createSession(newSession);
+        }
+        return result;
+    },
+    async checkUserCredentials(loginOrEmail, password) {
+        const result = new result_class_1.ResultClass();
+        const user = await usersRepository_1.usersRepository.findByLoginOrEmail(loginOrEmail);
+        // Проверка на наличие пользователя
+        if (!user) {
+            result.status = resultStatus_1.ResultStatus.NotFound;
+            result.addError('User not found', 'loginOrEmail');
+            return result;
+        }
+        // Проверка пароля
+        const isPassCorrect = await hashServices_1.hashServices.checkHash(password, user.passwordHash);
+        if (!isPassCorrect) {
+            result.addError('Wrong Password', 'password');
+            return result;
+        }
+        return {
+            status: resultStatus_1.ResultStatus.Success,
+            data: user
+        };
+    },
     //Рефрештокен кодировать с учетом userId и deviceId, а вернуть помимо токенов еще и дату их создания
     async generateTokens(userId, deviceId) {
         var _a;
@@ -61,28 +106,60 @@ exports.authServices = {
         result.data = { accessToken, refreshToken, lastActiveDate };
         return result;
     },
-    async loginUser(login, ip, title) {
-        let result = new result_class_1.ResultClass();
-        const { loginOrEmail, password } = login;
-        const user = await this.checkUserCredentials(loginOrEmail, password);
-        //если логин или пароль не верны или не существуют
-        if (user.status !== resultStatus_1.ResultStatus.Success) {
-            result.status = resultStatus_1.ResultStatus.Unauthorized;
-            result.addError('Wrong credentials', 'loginOrEmail|password');
+    async refreshTokens(refreshToken) {
+        const result = new result_class_1.ResultClass();
+        const foundSession = (await this.checkRefreshToken(refreshToken)).data;
+        if (!foundSession)
             return result;
-        }
-        //если данные для входа валидны, то генеирруем deviceId и токены RT и AT, кодируя в RT payload {userId,deviceId}
-        const _id = new mongodb_1.ObjectId();
-        const deviceId = _id.toString();
-        const userId = user.data._id.toString();
-        //если данные для входа валидны, то генеирруем токены для пользователя и его deviceId
-        result = await this.generateTokens(userId, deviceId);
+        //генерируем новую пару токенов обновляем запись сессии по полю lastActiveDate и expDate
+        const newTokens = await this.generateTokens(foundSession.userId, foundSession._id.toString());
         //создать новую сессию если генерация токенов прошла успешно
-        if (result.data) {
-            const lastActiveDate = result.data.lastActiveDate;
-            const expDate = (0, add_1.add)(lastActiveDate, parseDuration(config_1.appConfig.RT_TIME));
-            const newSession = { _id, ip, title, userId, lastActiveDate, expDate };
-            const sid = await securityServices_1.securityServices.createSession(newSession);
+        if (newTokens.data) {
+            const newLastActiveDate = newTokens.data.lastActiveDate;
+            const newExpDate = (0, add_1.add)(newLastActiveDate, parseDuration(config_1.appConfig.RT_TIME));
+            const isSessionUpdated = await securityServices_1.securityServices.updateSession(newLastActiveDate, newExpDate, foundSession._id);
+            if (isSessionUpdated) {
+                result.data = newTokens.data;
+                result.status = resultStatus_1.ResultStatus.Success;
+            }
+            else {
+                result.status = resultStatus_1.ResultStatus.CancelledAction;
+                result.addError('Sorry, something wrong with update date of new session, try again', 'refreshToken');
+            }
+        }
+        return result;
+    },
+    async checkRefreshToken(refreshToken) {
+        var _a;
+        const result = new result_class_1.ResultClass();
+        const jwtPayload = await jwtServices_1.jwtServices.verifyToken(refreshToken, config_1.appConfig.RT_SECRET);
+        if (jwtPayload) {
+            if (!jwtPayload.hasOwnProperty("userId") || !jwtPayload.hasOwnProperty("deviceId"))
+                throw new Error(`incorrect jwt! ${JSON.stringify(jwtPayload)}`);
+            const userId = jwtPayload.userId;
+            const deviceId = jwtPayload.deviceId;
+            const lastActiveDate = new Date(((_a = jwtPayload.iat) !== null && _a !== void 0 ? _a : 0) * 1000);
+            const activeSession = await securityRepository_1.securityRepository.findActiveSession({ userId, deviceId, lastActiveDate });
+            if (activeSession) {
+                result.data = activeSession;
+                result.status = resultStatus_1.ResultStatus.Success;
+            }
+        }
+        return result;
+    },
+    async checkAccessToken(authHeader) {
+        const [type, token] = authHeader.split(" ");
+        const result = new result_class_1.ResultClass();
+        const jwtPayload = await jwtServices_1.jwtServices.verifyToken(token, config_1.appConfig.AT_SECRET);
+        if (jwtPayload) {
+            if (!jwtPayload.hasOwnProperty("userId"))
+                throw new Error(`incorrect jwt! ${JSON.stringify(jwtPayload)}`);
+            const userId = jwtPayload.userId;
+            const user = await usersRepository_1.usersRepository.getUserById(userId);
+            if (user) {
+                result.data = { userId };
+                result.status = resultStatus_1.ResultStatus.Success;
+            }
         }
         return result;
     },
@@ -111,83 +188,6 @@ exports.authServices = {
             .catch((er) => console.error('error in send email:', er));
         result.status = resultStatus_1.ResultStatus.Success;
         return result;
-    },
-    async checkAccessToken(authHeader) {
-        const [type, token] = authHeader.split(" ");
-        const result = new result_class_1.ResultClass();
-        const jwtPayload = await jwtServices_1.jwtServices.verifyToken(token, config_1.appConfig.AT_SECRET);
-        if (jwtPayload) {
-            if (!jwtPayload.hasOwnProperty("userId"))
-                throw new Error(`incorrect jwt! ${JSON.stringify(jwtPayload)}`);
-            const userId = jwtPayload.userId;
-            const user = await usersRepository_1.usersRepository.getUserById(userId);
-            if (user) {
-                result.data = { userId };
-                result.status = resultStatus_1.ResultStatus.Success;
-            }
-        }
-        return result;
-    },
-    async checkRefreshToken(refreshToken) {
-        var _a;
-        const result = new result_class_1.ResultClass();
-        const jwtPayload = await jwtServices_1.jwtServices.verifyToken(refreshToken, config_1.appConfig.RT_SECRET);
-        if (jwtPayload) {
-            if (!jwtPayload.hasOwnProperty("userId") || !jwtPayload.hasOwnProperty("deviceId"))
-                throw new Error(`incorrect jwt! ${JSON.stringify(jwtPayload)}`);
-            const userId = jwtPayload.userId;
-            const deviceId = jwtPayload.deviceId;
-            const lastActiveDate = new Date(((_a = jwtPayload.iat) !== null && _a !== void 0 ? _a : 0) * 1000);
-            const activeSession = await securityRepository_1.securityRepository.findActiveSession({ userId, deviceId, lastActiveDate });
-            if (activeSession) {
-                result.data = activeSession;
-                result.status = resultStatus_1.ResultStatus.Success;
-            }
-        }
-        return result;
-    },
-    async refreshTokens(refreshToken) {
-        const result = new result_class_1.ResultClass();
-        const foundSession = (await this.checkRefreshToken(refreshToken)).data;
-        if (!foundSession)
-            return result;
-        //генерируем новую пару токенов обновляем запись сессии по полю lastActiveDate и expDate
-        const newTokens = await this.generateTokens(foundSession.userId, foundSession._id.toString());
-        //создать новую сессию если генерация токенов прошла успешно
-        if (newTokens.data) {
-            const newLastActiveDate = newTokens.data.lastActiveDate;
-            const newExpDate = (0, add_1.add)(newLastActiveDate, parseDuration(config_1.appConfig.RT_TIME));
-            const isSessionUpdated = await securityServices_1.securityServices.updateSession(newLastActiveDate, newExpDate, foundSession._id);
-            if (isSessionUpdated) {
-                result.data = newTokens.data;
-                result.status = resultStatus_1.ResultStatus.Success;
-            }
-            else {
-                result.status = resultStatus_1.ResultStatus.CancelledAction;
-                result.addError('Sorry, something wrong with update date of new session, try again', 'refreshToken');
-            }
-        }
-        return result;
-    },
-    async checkUserCredentials(loginOrEmail, password) {
-        const result = new result_class_1.ResultClass();
-        const user = await usersRepository_1.usersRepository.findByLoginOrEmail(loginOrEmail);
-        // Проверка на наличие пользователя
-        if (!user) {
-            result.status = resultStatus_1.ResultStatus.NotFound;
-            result.addError('User not found', 'loginOrEmail');
-            return result;
-        }
-        // Проверка пароля
-        const isPassCorrect = await hashServices_1.hashServices.checkHash(password, user.passwordHash);
-        if (!isPassCorrect) {
-            result.addError('Wrong Password', 'password');
-            return result;
-        }
-        return {
-            status: resultStatus_1.ResultStatus.Success,
-            data: user
-        };
     },
     async confirmEmail(code) {
         const result = new result_class_1.ResultClass();

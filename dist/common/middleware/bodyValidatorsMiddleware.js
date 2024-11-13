@@ -3,6 +3,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.emailResendingValidator = exports.codeRegConfirmValidator = exports.loginOrEmailValidator = exports.passwordValidator = exports.emailValidator = exports.loginValidator = void 0;
 const express_validator_1 = require("express-validator");
 const usersRepository_1 = require("../../features/users/repositories/usersRepository");
+const uniqueLoginValidator = async (login) => {
+    const user = await usersRepository_1.usersRepository.findUserByLogin(login);
+    if (user)
+        throw new Error("login already exist");
+    return true;
+};
 const uniqueEmailValidator = async (email) => {
     const user = await usersRepository_1.usersRepository.findUserByEmail(email);
     if (user)
@@ -15,12 +21,6 @@ const EmailValidator = async (email) => {
         throw new Error("Users account with this Email not found!");
     if (user.emailConfirmation.isConfirmed)
         throw new Error("Users account with this email already activated!");
-    return true;
-};
-const uniqueLoginValidator = async (login) => {
-    const user = await usersRepository_1.usersRepository.findUserByLogin(login);
-    if (user)
-        throw new Error("login already exist");
     return true;
 };
 const checkRegConfirmCode = async (code) => {

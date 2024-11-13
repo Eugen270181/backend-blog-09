@@ -22,7 +22,7 @@ exports.appConfig = {
     DB_TYPE: process.env.DB_TYPE,
     EMAIL: process.env.EMAIL,
     EMAIL_PASS: process.env.EMAIL_PASS,
-    EMAIL_TIME: process.env.EMAIL_TIME || '1', //in hours
+    EMAIL_TIME: process.env.EMAIL_TIME || '1h', //in hours
 };
 //console.log(process.env.MONGO_URL)
 // console.log(process.env.ADMIN)

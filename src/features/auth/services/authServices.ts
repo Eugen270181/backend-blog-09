@@ -48,6 +48,53 @@ function parseDuration(duration: string) {
 
 type extLoginSuccessOutputModel = LoginSuccessOutputModel & {refreshToken:string, lastActiveDate:Date}
 export const authServices = {
+    async loginUser(login:LoginInputModel,ip:string,title:string) {
+        let result = new ResultClass<extLoginSuccessOutputModel>()
+        const {loginOrEmail, password} = login
+        const user= await this.checkUserCredentials(loginOrEmail, password)
+        //если логин или пароль не верны или не существуют
+        if (user.status !== ResultStatus.Success) {
+            result.status = ResultStatus.Unauthorized
+            result.addError('Wrong credentials','loginOrEmail|password')
+            return result
+        }
+        //если данные для входа валидны, то генеирруем deviceId и токены RT и AT, кодируя в RT payload {userId,deviceId}
+        const _id = new ObjectId()
+        const deviceId = _id.toString()
+        const userId = user.data!._id.toString()
+        //если данные для входа валидны, то генеирруем токены для пользователя и его deviceId
+        result = await this.generateTokens(userId,deviceId)
+        //создать новую сессию если генерация токенов прошла успешно
+        if (result.data) {
+            const lastActiveDate = result.data.lastActiveDate;
+            const expDate = add( lastActiveDate, parseDuration(appConfig.RT_TIME) );
+            const newSession = {_id, ip, title, userId, lastActiveDate, expDate}
+            const sid = await securityServices.createSession(newSession)
+        }
+
+        return result
+    },
+    async checkUserCredentials(loginOrEmail: string, password: string) {
+        const result = new ResultClass<WithId<UserDbModel>>()
+        const user = await usersRepository.findByLoginOrEmail(loginOrEmail);
+        // Проверка на наличие пользователя
+        if (!user) {
+            result.status = ResultStatus.NotFound
+            result.addError('User not found','loginOrEmail')
+            return result
+        }
+        // Проверка пароля
+        const isPassCorrect = await hashServices.checkHash(password, user.passwordHash);
+        if (!isPassCorrect) {
+            result.addError('Wrong Password','password')
+            return result
+        }
+
+        return {
+            status: ResultStatus.Success,
+            data: user
+        }
+    },
     //Рефрештокен кодировать с учетом userId и deviceId, а вернуть помимо токенов еще и дату их создания
     async generateTokens(userId:string, deviceId:string){
         const result = new ResultClass<extLoginSuccessOutputModel>()
@@ -74,28 +121,57 @@ export const authServices = {
 
         return result
     },
-    async loginUser(login:LoginInputModel,ip:string,title:string) {
-        let result = new ResultClass<extLoginSuccessOutputModel>()
-        const {loginOrEmail, password} = login
-        const user= await this.checkUserCredentials(loginOrEmail, password)
-        //если логин или пароль не верны или не существуют
-        if (user.status !== ResultStatus.Success) {
-            result.status = ResultStatus.Unauthorized
-            result.addError('Wrong credentials','loginOrEmail|password')
-            return result
-        }
-        //если данные для входа валидны, то генеирруем deviceId и токены RT и AT, кодируя в RT payload {userId,deviceId}
-        const _id = new ObjectId()
-        const deviceId = _id.toString()
-        const userId = user.data!._id.toString()
-        //если данные для входа валидны, то генеирруем токены для пользователя и его deviceId
-        result = await this.generateTokens(userId,deviceId)
+    async refreshTokens(refreshToken: string){
+        const result = new ResultClass<extLoginSuccessOutputModel>()
+        const foundSession = (await this.checkRefreshToken(refreshToken)).data
+
+        if (!foundSession) return result
+        //генерируем новую пару токенов обновляем запись сессии по полю lastActiveDate и expDate
+        const newTokens = await this.generateTokens(foundSession.userId,foundSession._id.toString());
         //создать новую сессию если генерация токенов прошла успешно
-        if (result.data) {
-            const lastActiveDate = result.data.lastActiveDate;
-            const expDate = add( lastActiveDate, parseDuration(appConfig.RT_TIME) );
-            const newSession = {_id, ip, title, userId, lastActiveDate, expDate}
-            const sid = await securityServices.createSession(newSession)
+        if (newTokens.data) {
+            const newLastActiveDate = newTokens.data.lastActiveDate;
+            const newExpDate = add( newLastActiveDate, parseDuration(appConfig.RT_TIME) );
+            const isSessionUpdated = await securityServices.updateSession(newLastActiveDate,newExpDate,foundSession._id)
+            if (isSessionUpdated) {
+                result.data = newTokens.data
+                result.status = ResultStatus.Success
+            } else {
+                result.status = ResultStatus.CancelledAction
+                result.addError('Sorry, something wrong with update date of new session, try again','refreshToken')
+            }
+        }
+        return result
+    },
+    async checkRefreshToken(refreshToken: string) {
+        const result = new ResultClass<WithId<SecurityDbModel>>()
+        const jwtPayload = await jwtServices.verifyToken(refreshToken, appConfig.RT_SECRET)
+
+        if (jwtPayload) {
+            if ( !(jwtPayload as object).hasOwnProperty("userId") || !(jwtPayload as object).hasOwnProperty("deviceId") )
+                throw new Error( `incorrect jwt! ${JSON.stringify(jwtPayload)}` )
+            const userId = jwtPayload.userId;
+            const deviceId = jwtPayload.deviceId;
+            const lastActiveDate = new Date( (jwtPayload.iat??0)*1000 )
+            const activeSession = await securityRepository.findActiveSession({userId, deviceId, lastActiveDate})
+            if (activeSession) {
+                result.data = activeSession
+                result.status = ResultStatus.Success
+            }
+        }
+
+        return result
+    },
+    async checkAccessToken(authHeader: string) {
+        const [type, token] = authHeader.split(" ")
+        const result = new ResultClass<UserIdType>()
+        const jwtPayload = await jwtServices.verifyToken(token, appConfig.AT_SECRET)
+
+        if (jwtPayload) {
+            if (!(jwtPayload as object).hasOwnProperty("userId")) throw new Error(`incorrect jwt! ${JSON.stringify(jwtPayload)}`)
+            const userId = jwtPayload.userId;
+            const user = await usersRepository.getUserById(userId)
+            if (user) { result.data = {userId}; result.status = ResultStatus.Success }
         }
 
         return result
@@ -129,82 +205,6 @@ export const authServices = {
 
         result.status = ResultStatus.Success
         return result
-    },
-    async checkAccessToken(authHeader: string) {
-        const [type, token] = authHeader.split(" ")
-        const result = new ResultClass<UserIdType>()
-        const jwtPayload = await jwtServices.verifyToken(token, appConfig.AT_SECRET)
-
-        if (jwtPayload) {
-            if (!(jwtPayload as object).hasOwnProperty("userId")) throw new Error(`incorrect jwt! ${JSON.stringify(jwtPayload)}`)
-            const userId = jwtPayload.userId;
-            const user = await usersRepository.getUserById(userId)
-            if (user) { result.data = {userId}; result.status = ResultStatus.Success }
-        }
-
-        return result
-    },
-    async checkRefreshToken(refreshToken: string) {
-        const result = new ResultClass<WithId<SecurityDbModel>>()
-        const jwtPayload = await jwtServices.verifyToken(refreshToken, appConfig.RT_SECRET)
-
-        if (jwtPayload) {
-            if ( !(jwtPayload as object).hasOwnProperty("userId") || !(jwtPayload as object).hasOwnProperty("deviceId") )
-                throw new Error( `incorrect jwt! ${JSON.stringify(jwtPayload)}` )
-            const userId = jwtPayload.userId;
-            const deviceId = jwtPayload.deviceId;
-            const lastActiveDate = new Date( (jwtPayload.iat??0)*1000 )
-            const activeSession = await securityRepository.findActiveSession({userId, deviceId, lastActiveDate})
-            if (activeSession) {
-                result.data = activeSession
-                result.status = ResultStatus.Success
-            }
-        }
-
-        return result
-    },
-    async refreshTokens(refreshToken: string){
-        const result = new ResultClass<extLoginSuccessOutputModel>()
-        const foundSession = (await this.checkRefreshToken(refreshToken)).data
-
-        if (!foundSession) return result
-        //генерируем новую пару токенов обновляем запись сессии по полю lastActiveDate и expDate
-        const newTokens = await this.generateTokens(foundSession.userId,foundSession._id.toString());
-        //создать новую сессию если генерация токенов прошла успешно
-        if (newTokens.data) {
-            const newLastActiveDate = newTokens.data.lastActiveDate;
-            const newExpDate = add( newLastActiveDate, parseDuration(appConfig.RT_TIME) );
-            const isSessionUpdated = await securityServices.updateSession(newLastActiveDate,newExpDate,foundSession._id)
-            if (isSessionUpdated) {
-                result.data = newTokens.data
-                result.status = ResultStatus.Success
-            } else {
-                result.status = ResultStatus.CancelledAction
-                result.addError('Sorry, something wrong with update date of new session, try again','refreshToken')
-            }
-        }
-        return result
-    },
-    async checkUserCredentials(loginOrEmail: string, password: string) {
-        const result = new ResultClass<WithId<UserDbModel>>()
-        const user = await usersRepository.findByLoginOrEmail(loginOrEmail);
-        // Проверка на наличие пользователя
-        if (!user) {
-            result.status = ResultStatus.NotFound
-            result.addError('User not found','loginOrEmail')
-            return result
-        }
-        // Проверка пароля
-        const isPassCorrect = await hashServices.checkHash(password, user.passwordHash);
-        if (!isPassCorrect) {
-            result.addError('Wrong Password','password')
-            return result
-        }
-
-        return {
-            status: ResultStatus.Success,
-            data: user
-        }
     },
     async confirmEmail(code: string) {
         const result = new ResultClass()
