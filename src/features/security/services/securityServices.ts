@@ -1,6 +1,6 @@
 import {ObjectId} from "bson";
 import {SecurityDbModel} from "../types/securityDb.model";
-import {db} from "../../../common/module/db/db";
+
 import {securityRepository} from "../repository/securityRepository";
 import {WithId} from "mongodb";
 
@@ -19,7 +19,7 @@ export const securityServices = {
         if (!isIdValid) return false
         return securityRepository.deleteOtherSessions(userId, _id)
     },
-    async updateSession(lastActiveDate: number, expDate: number, _id: object) {
+    async updateSession(lastActiveDate: Date, expDate: Date, _id: object) {
         return securityRepository.updateSession(lastActiveDate, expDate, _id)
     },
 }

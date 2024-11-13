@@ -9,7 +9,6 @@ class User {
         this.email = email;
         this.passwordHash = hash;
         this.createdAt = new Date();
-        this.iatRTSec = 0;
         this.emailConfirmation = {
             expirationDate: (0, add_1.add)(new Date(), { hours: 1, minutes: 30 }),
             confirmationCode: (0, crypto_1.randomUUID)(),

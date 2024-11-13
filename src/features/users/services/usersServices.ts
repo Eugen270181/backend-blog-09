@@ -24,7 +24,6 @@ export const usersServices = {
             ...{login, email},
             passwordHash: await hashServices.getHash(password),
             createdAt: new Date(),
-            iatRTSec: 0,
             emailConfirmation: {    // when admin created it's not neccessary to check email
                 confirmationCode: '',
                 expirationDate: new Date(),

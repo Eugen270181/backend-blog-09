@@ -1,7 +1,7 @@
 export type SecurityDbModel = {
     ip: string
     title: string
-    lastActiveDate: number
+    lastActiveDate: Date
     userId:string
-    expDate: number
+    expDate: Date
 }

@@ -6,8 +6,8 @@ import {SecurityDbModel} from "../types/securityDb.model";
 
 export const securityQueryRepository = {
     async getActiveSessionsAndMap(userId?:string):Promise<SecurityOutputModel[]> { // используем этот метод если проверили валидность и существование в бд значения blogid
-        const timeNow = Date.now();
-        const filter = {expDate:{$gt:timeNow}, ...(userId && { userId })}
+        const dateNow = new Date();
+        const filter = {"expDate":{ $gt:dateNow }, ...(userId && { userId })}
 
         try {
             const sessions = await db.getCollections().sessionsCollection.find(filter).toArray()
@@ -21,6 +21,6 @@ export const securityQueryRepository = {
     },
     map(session:WithId<SecurityDbModel>):SecurityOutputModel {
         const { ip, title, lastActiveDate, _id} = session;//деструктуризация
-        return { ip, title, lastActiveDate:lastActiveDate.toString(), deviceId:_id.toString()}
+        return { deviceId:_id.toString(), ip, lastActiveDate:lastActiveDate.toISOString(), title  }
     }
 }

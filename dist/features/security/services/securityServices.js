@@ -8,16 +8,19 @@ exports.securityServices = {
         return securityRepository_1.securityRepository.createSession(sessionObject);
     },
     async deleteSession(_id) {
-        const isIdValid = bson_1.ObjectId.isValid(id);
+        const isIdValid = bson_1.ObjectId.isValid(_id);
         if (!isIdValid)
             return false;
-        return blogsRepository.updateBlog(blog, id);
+        return securityRepository_1.securityRepository.deleteSession(_id);
     },
-    async updateBlog(blog, id) {
-        const isIdValid = bson_1.ObjectId.isValid(id);
+    async deleteOtherSessions(userId, _id) {
+        const isIdValid = bson_1.ObjectId.isValid(_id);
         if (!isIdValid)
             return false;
-        return blogsRepository.updateBlog(blog, id);
+        return securityRepository_1.securityRepository.deleteOtherSessions(userId, _id);
+    },
+    async updateSession(lastActiveDate, expDate, _id) {
+        return securityRepository_1.securityRepository.updateSession(lastActiveDate, expDate, _id);
     },
 };
 //# sourceMappingURL=securityServices.js.map
