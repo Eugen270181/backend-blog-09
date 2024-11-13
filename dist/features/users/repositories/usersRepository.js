@@ -35,11 +35,6 @@ exports.usersRepository = {
             .updateOne({ _id }, { $set: { 'emailConfirmation.isConfirmed': true } });
         return result.modifiedCount === 1;
     },
-    async updateIatRTSec(_id, iatRTSec) {
-        const result = await db_1.db.getCollections().usersCollection
-            .updateOne({ _id }, { $set: { iatRTSec } });
-        return result.modifiedCount === 1;
-    },
     async setConfirmationCode(_id, code, date) {
         const result = await db_1.db.getCollections().usersCollection
             .updateOne({ _id }, { $set: { 'emailConfirmation.confirmationCode': code, 'emailConfirmation.expirationDate': date } });

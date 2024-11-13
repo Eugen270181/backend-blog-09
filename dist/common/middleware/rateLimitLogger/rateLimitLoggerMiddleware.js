@@ -15,11 +15,12 @@ const rateLimitLoggerMiddleware = async (req, res, next) => {
             url: url,
             date: { $gte: startTimeReqCounter },
         });
+        console.log(requestCount);
         if (requestCount >= 5)
             return res.status(429).send({ message: 'Превышено количество запросов. Попробуйте позже.' });
         // Сохранение запроса в базе данных
         await db_1.db.getCollections().requestsLogCollection.insertOne({ ip, url, date: now });
-        await db_1.db.getCollections().requestsLogCollection.deleteMany({ ip, url, date: { $le: startTimeReqCounter } });
+        //await db.getCollections().requestsLogCollection.deleteMany({ ip, url, date: { $lt: startTimeReqCounter } });
         next(); // Передаем управление дальше
     }
     catch (error) {

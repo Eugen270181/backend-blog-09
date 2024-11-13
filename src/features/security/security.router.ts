@@ -8,6 +8,6 @@ export const securityRouter = Router()
 
 securityRouter.get(routersPaths.inSecurity, getSecurityDevicesController)
 securityRouter.delete(routersPaths.inSecurity, delSecurityDevicesController)
-securityRouter.delete(routersPaths.inSecurity+':id', delSecurityDeviceController)
+securityRouter.delete(routersPaths.inSecurity+'/:id', delSecurityDeviceController)
 
 

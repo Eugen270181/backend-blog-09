@@ -18,7 +18,7 @@ exports.usersServices = {
             result.addError("not unique field!", "email");
             return result;
         }
-        const newUser = Object.assign({ login, email }, { passwordHash: await hashServices_1.hashServices.getHash(password), createdAt: new Date(), iatRTSec: 0, emailConfirmation: {
+        const newUser = Object.assign({ login, email }, { passwordHash: await hashServices_1.hashServices.getHash(password), createdAt: new Date(), emailConfirmation: {
                 confirmationCode: '',
                 expirationDate: new Date(),
                 isConfirmed: true

@@ -22,7 +22,7 @@ export const securityRepository = {
         const result = await db.getCollections().sessionsCollection.insertOne(sessionObject)
         return result.insertedId.toString()
     },
-    async updateSession(lastActiveDate:number, expDate:number, _id: object) {
+    async updateSession(lastActiveDate:Date, expDate:Date, _id: object) {
         const filter = { _id }
         const updater = { $set: { lastActiveDate, expDate } }
         const result = await db.getCollections().sessionsCollection.updateOne( filter, updater );

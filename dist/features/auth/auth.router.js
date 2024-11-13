@@ -21,7 +21,7 @@ exports.authRouter = (0, express_1.Router)();
 //login(reqirements - Returns JWT accessToken (expired after 10 seconds) in body and JWT refreshToken in cookie (http-only, secure) (expired after 20 seconds)
 exports.authRouter.post(paths_1.routersPaths.inAuth.login, rateLimitLoggerMiddleware_1.rateLimitLoggerMiddleware, loginAuthValidators_1.loginAuthValidators, loginAuthController_1.loginAuthController);
 exports.authRouter.get(paths_1.routersPaths.inAuth.me, accessTokenMiddleware_1.accessTokenMiddleware, getMeController_1.getMeController);
-exports.authRouter.post(paths_1.routersPaths.inAuth.registration, registrationAuthValidators_1.registrationAuthValidators, registrationAuthController_1.registrationAuthController);
+exports.authRouter.post(paths_1.routersPaths.inAuth.registration, rateLimitLoggerMiddleware_1.rateLimitLoggerMiddleware, registrationAuthValidators_1.registrationAuthValidators, registrationAuthController_1.registrationAuthController);
 exports.authRouter.post(paths_1.routersPaths.inAuth.registrationConfirmation, rateLimitLoggerMiddleware_1.rateLimitLoggerMiddleware, regConfirmAuthValidators_1.regConfirmAuthValidators, regConfirmAuthController_1.regConfirmAuthController);
 exports.authRouter.post(paths_1.routersPaths.inAuth.registrationEmailResending, rateLimitLoggerMiddleware_1.rateLimitLoggerMiddleware, regEmailResendingValidators_1.emailResendingAuthValidators, emailResendingAuthController_1.emailResendingAuthController);
 //logout(reqirements - In cookie client must send correct refreshToken that will be revoked.)

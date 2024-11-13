@@ -7,7 +7,6 @@ import {jwtServices} from "../../../common/adapters/jwtServices";
 import {nodemailerServices} from "../../../common/adapters/nodemailerServices";
 import {User} from "../../users/classes/user.class";
 import {CreateUserInputModel} from "../../users/types/input/createUserInput.type";
-import {ObjectId, WithId} from "mongodb";
 import {UserDbModel} from "../../users/types/userDb.model";
 import {LoginSuccessOutputModel} from "../types/output/loginSuccessOutput.model";
 import { add } from 'date-fns/add';
@@ -15,11 +14,39 @@ import {appConfig} from "../../../common/settings/config";
 import {UserIdType} from "../../../common/types/userId.type";
 import {securityRepository} from "../../security/repository/securityRepository";
 import {SecurityDbModel} from "../../security/types/securityDb.model";
+import {ObjectId, WithId} from "mongodb";
 import { v4 as uuidv4 } from 'uuid'
-import {securityServices} from "../../security/services/securityServices";
 import {randomUUID} from "crypto";
+import {securityServices} from "../../security/services/securityServices";
 
-type extLoginSuccessOutputModel = LoginSuccessOutputModel & {refreshToken:string, lastActiveDate:number}
+function parseDuration(duration: string) {
+    const units: { [key: string]: string } = {
+        s: 'seconds',
+        m: 'minutes',
+        h: 'hours',
+        d: 'days',
+        M: 'months',
+        y: 'years',
+    };
+
+    let durationObject: { [key: string]: number } = { seconds: 0, minutes: 0, hours: 0, days: 0, months: 0, years: 0 };
+
+    const regex = /(\d+)([smhdMy])/g;
+    let match;
+
+    while ((match = regex.exec(duration)) !== null) {
+        const value = parseInt(match[1], 10);
+        const unit = units[match[2]];
+
+        if (unit) {
+            durationObject[unit] += value;
+        }
+    }
+
+    return durationObject;
+}
+
+type extLoginSuccessOutputModel = LoginSuccessOutputModel & {refreshToken:string, lastActiveDate:Date}
 export const authServices = {
     //Рефрештокен кодировать с учетом userId и deviceId, а вернуть помимо токенов еще и дату их создания
     async generateTokens(userId:string, deviceId:string){
@@ -40,7 +67,7 @@ export const authServices = {
             result.addError('Sorry, something wrong with creation|decode refreshToken, try login later','refreshToken')
             return result
         }
-        const lastActiveDate = jwtPayload.iat??0
+        const lastActiveDate = new Date((jwtPayload.iat??0)*1000 )
 
         result.status = ResultStatus.Success
         result.data = {accessToken, refreshToken, lastActiveDate}
@@ -58,15 +85,15 @@ export const authServices = {
             return result
         }
         //если данные для входа валидны, то генеирруем deviceId и токены RT и AT, кодируя в RT payload {userId,deviceId}
-        const deviceId = uuidv4()
-        const _id = new ObjectId(deviceId)
+        const _id = new ObjectId()
+        const deviceId = _id.toString()
         const userId = user.data!._id.toString()
         //если данные для входа валидны, то генеирруем токены для пользователя и его deviceId
         result = await this.generateTokens(userId,deviceId)
         //создать новую сессию если генерация токенов прошла успешно
         if (result.data) {
             const lastActiveDate = result.data.lastActiveDate;
-            const expDate = lastActiveDate+Number((appConfig.RT_TIME).slice(0,-1))*1000;
+            const expDate = add( lastActiveDate, parseDuration(appConfig.RT_TIME) );
             const newSession = {_id, ip, title, userId, lastActiveDate, expDate}
             const sid = await securityServices.createSession(newSession)
         }
@@ -126,7 +153,7 @@ export const authServices = {
                 throw new Error( `incorrect jwt! ${JSON.stringify(jwtPayload)}` )
             const userId = jwtPayload.userId;
             const deviceId = jwtPayload.deviceId;
-            const lastActiveDate = jwtPayload.iat??0
+            const lastActiveDate = new Date( (jwtPayload.iat??0)*1000 )
             const activeSession = await securityRepository.findActiveSession({userId, deviceId, lastActiveDate})
             if (activeSession) {
                 result.data = activeSession
@@ -146,7 +173,7 @@ export const authServices = {
         //создать новую сессию если генерация токенов прошла успешно
         if (newTokens.data) {
             const newLastActiveDate = newTokens.data.lastActiveDate;
-            const newExpDate = newLastActiveDate + Number((appConfig.RT_TIME).slice(0, -1)) * 1000;
+            const newExpDate = add( newLastActiveDate, parseDuration(appConfig.RT_TIME) );
             const isSessionUpdated = await securityServices.updateSession(newLastActiveDate,newExpDate,foundSession._id)
             if (isSessionUpdated) {
                 result.data = newTokens.data
@@ -218,7 +245,7 @@ export const authServices = {
             return result
         }
         const newConfirmationCode = randomUUID()
-        const newConfirmationDate =add( new Date(), { hours: +appConfig.EMAIL_TIME } )
+        const newConfirmationDate =add( new Date(), parseDuration(appConfig.EMAIL_TIME) )
         const isUpdateConfirmationCode = await usersRepository.setConfirmationCode(user._id,newConfirmationCode,newConfirmationDate)
         if (!isUpdateConfirmationCode) {
             result.addError('Something wrong with activate your account, try later','email')

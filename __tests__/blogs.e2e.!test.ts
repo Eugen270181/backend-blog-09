@@ -1,6 +1,5 @@
 import {req} from './helpers/test-helpers'
-import {dbMongo, setDB} from '../src/db/dbMemory'
-import {appConfig} from '../src/common/settings/config'
+import {dbMongo, setDB} from '../src/db/dbMemory'import {appConfig} from '../src/common/settings/config'
 import {codedAuth, createString, dataset1} from './helpers/datasets'
 import {CreateBlogInputModel} from "../src/features/blogs/types/input/createBlogInput.model";
 
