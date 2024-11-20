@@ -5,7 +5,7 @@ const db_1 = require("../../../common/module/db/db");
 exports.securityQueryRepository = {
     async getActiveSessionsAndMap(userId) {
         const dateNow = new Date();
-        const filter = Object.assign({ "expDate": { $gt: dateNow } }, (userId && { userId }));
+        const filter = { "expDate": { $gt: dateNow }, ...(userId && { userId }) };
         try {
             const sessions = await db_1.db.getCollections().sessionsCollection.find(filter).toArray();
             return sessions.map(this.map);

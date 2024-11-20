@@ -83,7 +83,6 @@ exports.authServices = {
     },
     //Рефрештокен кодировать с учетом userId и deviceId, а вернуть помимо токенов еще и дату их создания
     async generateTokens(userId, deviceId) {
-        var _a;
         const result = new result_class_1.ResultClass();
         //генеирруем токены для пользователя и его deviceid
         const accessToken = await jwtServices_1.jwtServices.createToken(userId, config_1.appConfig.AT_SECRET, config_1.appConfig.AT_TIME);
@@ -101,7 +100,7 @@ exports.authServices = {
             result.addError('Sorry, something wrong with creation|decode refreshToken, try login later', 'refreshToken');
             return result;
         }
-        const lastActiveDate = new Date(((_a = jwtPayload.iat) !== null && _a !== void 0 ? _a : 0) * 1000);
+        const lastActiveDate = new Date((jwtPayload.iat ?? 0) * 1000);
         result.status = resultStatus_1.ResultStatus.Success;
         result.data = { accessToken, refreshToken, lastActiveDate };
         return result;
@@ -130,7 +129,6 @@ exports.authServices = {
         return result;
     },
     async checkRefreshToken(refreshToken) {
-        var _a;
         const result = new result_class_1.ResultClass();
         const jwtPayload = await jwtServices_1.jwtServices.verifyToken(refreshToken, config_1.appConfig.RT_SECRET);
         if (jwtPayload) {
@@ -138,7 +136,7 @@ exports.authServices = {
                 throw new Error(`incorrect jwt! ${JSON.stringify(jwtPayload)}`);
             const userId = jwtPayload.userId;
             const deviceId = jwtPayload.deviceId;
-            const lastActiveDate = new Date(((_a = jwtPayload.iat) !== null && _a !== void 0 ? _a : 0) * 1000);
+            const lastActiveDate = new Date((jwtPayload.iat ?? 0) * 1000);
             const activeSession = await securityRepository_1.securityRepository.findActiveSession({ userId, deviceId, lastActiveDate });
             if (activeSession) {
                 result.data = activeSession;

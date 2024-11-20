@@ -21,7 +21,7 @@ exports.blogsRepository = {
     async updateBlog(blog, id) {
         const { name, description, websiteUrl } = blog;
         const filter = { _id: new mongodb_1.ObjectId(id) };
-        const updater = { $set: Object.assign({ name, description, websiteUrl }) };
+        const updater = { $set: { ...{ name, description, websiteUrl } } };
         const result = await db_1.db.getCollections().blogsCollection.updateOne(filter, updater);
         return result.modifiedCount > 0;
     },

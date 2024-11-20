@@ -6,8 +6,7 @@ const httpStatus_1 = require("../../../common/types/enum/httpStatus");
 const resultStatus_1 = require("../../../common/types/enum/resultStatus");
 //import cookieParser from "cookie-parser";
 const loginAuthController = async (req, res) => {
-    var _a, _b;
-    const result = await authServices_1.authServices.loginUser(req.body, (_a = req.ip) !== null && _a !== void 0 ? _a : 'unknown', (_b = req.headers["user-agent"]) !== null && _b !== void 0 ? _b : 'unknown');
+    const result = await authServices_1.authServices.loginUser(req.body, req.ip ?? 'unknown', req.headers["user-agent"] ?? 'unknown');
     if (result.status === resultStatus_1.ResultStatus.Unauthorized)
         return res.sendStatus(httpStatus_1.HttpStatus.Unauthorized);
     if (result.status === resultStatus_1.ResultStatus.CancelledAction)

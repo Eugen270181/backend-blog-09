@@ -18,11 +18,16 @@ exports.usersServices = {
             result.addError("not unique field!", "email");
             return result;
         }
-        const newUser = Object.assign({ login, email }, { passwordHash: await hashServices_1.hashServices.getHash(password), createdAt: new Date(), emailConfirmation: {
+        const newUser = {
+            ...{ login, email },
+            passwordHash: await hashServices_1.hashServices.getHash(password),
+            createdAt: new Date(),
+            emailConfirmation: {
                 confirmationCode: '',
                 expirationDate: new Date(),
                 isConfirmed: true
-            } });
+            }
+        };
         const newUserId = await usersRepository_1.usersRepository.createUser(newUser);
         result.status = resultStatus_1.ResultStatus.Created;
         result.data = newUserId;

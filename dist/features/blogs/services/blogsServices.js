@@ -6,7 +6,11 @@ const bson_1 = require("bson");
 exports.blogsServices = {
     async createBlog(blog) {
         const { name, description, websiteUrl } = blog;
-        const newBlog = Object.assign({ name, description, websiteUrl }, { createdAt: new Date().toISOString(), isMembership: false });
+        const newBlog = {
+            ...{ name, description, websiteUrl },
+            createdAt: new Date().toISOString(),
+            isMembership: false
+        };
         return blogsRepository_1.blogsRepository.createBlog(newBlog);
     },
     async deleteBlog(id) {

@@ -3,7 +3,7 @@ import {createPostController} from './controllers/createPostController'
 import {getPostsController} from './controllers/getPostsController'
 import {findPostController} from './controllers/findPostController'
 import {delPostController} from './controllers/delPostController'
-import {putPostController} from './controllers/putPostController'
+import {updatePostController} from './controllers/updatePostController'
 import {postValidators} from './middlewares/postValidators'
 import {adminMiddleware} from '../../common/middleware/adminMiddleware'
 import {findPostCommentsController} from "./controllers/findPostCommentsController";
@@ -21,6 +21,6 @@ postsRouter.get('/:id/comments', ...querySortSanitizers, findPostCommentsControl
 postsRouter.post('/:id/comments', accessTokenMiddleware,...commentValidators, createPostCommentController)//new - task-06
 postsRouter.post('/',  adminMiddleware, ...postValidators, createPostController)
 postsRouter.delete('/:id',  adminMiddleware, delPostController)
-postsRouter.put('/:id', adminMiddleware, ...postValidators, putPostController)
+postsRouter.put('/:id', adminMiddleware, ...postValidators, updatePostController)
 
 // не забудьте добавить роут в апп

@@ -6,8 +6,7 @@ const postsRepository_1 = require("../repository/postsRepository");
 const commentsQueryRepository_1 = require("../../comments/repositories/commentsQueryRepository");
 const httpStatus_1 = require("../../../common/types/enum/httpStatus");
 const createPostCommentController = async (req, res) => {
-    var _a;
-    const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
+    const userId = req.user?.userId;
     const postId = req.params.id;
     const foundPost = await postsRepository_1.postsRepository.findPostById(postId);
     if (!foundPost)

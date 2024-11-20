@@ -20,7 +20,7 @@ exports.postsRepository = {
     },
     async updatePost(post, id) {
         const filter = { _id: new mongodb_1.ObjectId(id) };
-        const updater = { $set: Object.assign({}, post) };
+        const updater = { $set: { ...post } };
         const result = await db_1.db.getCollections().postsCollection.updateOne(filter, updater);
         return result.modifiedCount > 0;
     },

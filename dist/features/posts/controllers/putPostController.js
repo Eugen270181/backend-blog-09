@@ -11,4 +11,4 @@ const putPostController = async (req, res) => {
     return res.sendStatus(httpStatus_1.HttpStatus.NoContent);
 };
 exports.putPostController = putPostController;
-//# sourceMappingURL=putPostController.js.map
+//# sourceMappingURL=updatePostController.js.map

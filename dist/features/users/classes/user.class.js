@@ -4,6 +4,11 @@ exports.User = void 0;
 const crypto_1 = require("crypto");
 const add_1 = require("date-fns/add");
 class User {
+    login;
+    email;
+    passwordHash;
+    createdAt;
+    emailConfirmation;
     constructor(login, email, hash) {
         this.login = login;
         this.email = email;

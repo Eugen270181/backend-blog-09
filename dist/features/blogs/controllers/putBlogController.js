@@ -10,4 +10,4 @@ const putBlogController = async (req, res) => {
     return res.sendStatus(httpStatus_1.HttpStatus.NoContent);
 };
 exports.putBlogController = putBlogController;
-//# sourceMappingURL=putBlogController.js.map
+//# sourceMappingURL=updateBlogController.js.map

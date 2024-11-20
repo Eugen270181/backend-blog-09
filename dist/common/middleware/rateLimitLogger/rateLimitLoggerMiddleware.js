@@ -3,8 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.rateLimitLoggerMiddleware = void 0;
 const db_1 = require("../../module/db/db");
 const rateLimitLoggerMiddleware = async (req, res, next) => {
-    var _a;
-    const ip = (_a = req.ip) !== null && _a !== void 0 ? _a : "unknown";
+    const ip = req.ip ?? "unknown";
     const url = req.originalUrl;
     const now = new Date();
     const startTimeReqCounter = new Date(now.getTime() - 10000);

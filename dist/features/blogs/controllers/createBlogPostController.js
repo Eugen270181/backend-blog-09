@@ -10,7 +10,7 @@ const createBlogPostController = async (req, res) => {
     const foundBlog = await blogsQueryRepository_1.blogsQueryRepository.findBlogById(blogId);
     if (!foundBlog)
         return res.sendStatus(httpStatus_1.HttpStatus.NotFound);
-    const newPostId = await postsServices_1.postsServices.createPost(Object.assign(Object.assign({}, req.body), { blogId }));
+    const newPostId = await postsServices_1.postsServices.createPost({ ...req.body, blogId });
     const newPost = await postsQueryRepository_1.postsQueryRepository.findPostAndMap(newPostId);
     if (!newPost)
         return res.sendStatus(httpStatus_1.HttpStatus.InternalServerError);

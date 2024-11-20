@@ -7,7 +7,11 @@ const postsRepository_1 = require("../repository/postsRepository");
 exports.postsServices = {
     async createPost(post) {
         const { title, shortDescription, content, blogId } = post;
-        const newPost = Object.assign({ title, shortDescription, content, blogId }, { blogName: (await blogsRepository_1.blogsRepository.findBlogById(post.blogId)).name, createdAt: new Date().toISOString() });
+        const newPost = {
+            ...{ title, shortDescription, content, blogId },
+            blogName: (await blogsRepository_1.blogsRepository.findBlogById(post.blogId)).name,
+            createdAt: new Date().toISOString()
+        };
         return postsRepository_1.postsRepository.createPost(newPost); // return _id -objectId
     },
     async deletePost(id) {
@@ -24,7 +28,7 @@ exports.postsServices = {
         const blog = await blogsRepository_1.blogsRepository.findBlogById(post.blogId);
         if (!blog)
             return false;
-        const updateObject = Object.assign({ title, shortDescription, content, blogId }, { blogName: blog.name });
+        const updateObject = { ...{ title, shortDescription, content, blogId }, blogName: blog.name };
         return postsRepository_1.postsRepository.updatePost(updateObject, id);
     },
 };

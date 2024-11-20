@@ -5,7 +5,7 @@ import {HttpStatus} from "../../../common/types/enum/httpStatus";
 import {RequestWithParamsAndBody} from "../../../common/types/requests.type";
 import {IdType} from "../../../common/types/id.type";
 
-export const putPostController = async (req: RequestWithParamsAndBody<IdType, UpdatePostInputModel>, res: Response) => {
+export const updatePostController = async (req: RequestWithParamsAndBody<IdType, UpdatePostInputModel>, res: Response) => {
     const postId = req.params.id
     const updateResult = await postsServices.updatePost(req.body,postId)
     if(!updateResult) return res.sendStatus(HttpStatus.NotFound)

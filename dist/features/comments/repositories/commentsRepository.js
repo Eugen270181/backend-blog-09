@@ -20,7 +20,7 @@ exports.commentsRepository = {
     },
     async updateComment(comment, id) {
         const filter = { _id: new mongodb_1.ObjectId(id) };
-        const updater = { $set: Object.assign({}, comment) };
+        const updater = { $set: { ...comment } };
         const result = await db_1.db.getCollections().commentsCollection.updateOne(filter, updater);
         return result.modifiedCount > 0;
     },

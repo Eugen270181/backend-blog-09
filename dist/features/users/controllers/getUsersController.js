@@ -8,7 +8,7 @@ const getUsersController = async (req, res) => {
     const sanitizedSortQuery = (0, querySortSanitizer_1.querySortSanitizer)(req.query);
     const searchLoginTerm = req.query.searchLoginTerm;
     const searchEmailTerm = req.query.searchEmailTerm;
-    const usersQueryFilter = Object.assign({ searchLoginTerm, searchEmailTerm }, sanitizedSortQuery);
+    const usersQueryFilter = { searchLoginTerm, searchEmailTerm, ...sanitizedSortQuery };
     const foundUsers = await usersQueryRepository_1.usersQueryRepository.getMapUsers(usersQueryFilter);
     return res.status(httpStatus_1.HttpStatus.Success).send(foundUsers);
 };
